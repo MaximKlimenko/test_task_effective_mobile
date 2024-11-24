@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/MaximKlimenko/test_task_effective_mobile/config"
+	"github.com/MaximKlimenko/test_task_effective_mobile/handlers"
 	"github.com/MaximKlimenko/test_task_effective_mobile/migrations"
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
@@ -27,8 +28,9 @@ func main() {
 
 	// Подключение к базе данных
 	var err error
-	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPass, cfg.DBName)
+
 	db, err = sqlx.Open("postgres", dsn)
 	if err != nil {
 		logger.Fatal("Failed to connect to the database:", err)
@@ -40,7 +42,11 @@ func main() {
 
 	// Настройка маршрутов
 	r := chi.NewRouter()
-	setupRoutes(r, logger)
+	r.Get("/library", handlers.GetLibrary(db))
+	r.Post("/add", handlers.AddSong(db, cfg))
+	r.Get("/lyrics", handlers.GetSongLyrics(db))
+	r.Delete("/delete/{id}", handlers.DeleteSong(db))
+	r.Put("/update/{id}", handlers.UpdateSong(db))
 
 	// Запуск сервера
 	logger.Infof("Starting server on port %s", cfg.AppPort)
